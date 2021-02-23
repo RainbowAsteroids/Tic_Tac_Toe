@@ -7,8 +7,11 @@ import random
 ttfInit()
 randomize()
 
-let font = openFont("LiberationMono-Regular.ttf", 120)
-let width = 200.cint
+const font_data = slurp("../LiberationMono-Regular.ttf").cstring
+let font_RWops = font_data.rwFromConstMem(font_data.len)
+let font = font_RWops.openFontRW(0, 120)
+
+let width = 100.cint
 let margin = (width.float * 0.03).cint
 let screen_width = (width * 3).float.cint + margin
 
@@ -69,7 +72,9 @@ type
     BoardState = object
         case state: BoardStateEnum
             of bseCloseWin: last: tuple[i, j: int]
-            of bseVictory: path: array[0..2, tuple[i, j: int]]
+            of bseVictory: 
+                path: array[0..2, tuple[i, j: int]]
+                side: char
             else: discard
 
 proc getBoardState(): BoardState = 
@@ -95,7 +100,7 @@ proc getBoardState(): BoardState =
         table.del(' ')
         for k, v in table:
             if v == 3: 
-                return BoardState(state: bseVictory, path: p)
+                return BoardState(state: bseVictory, path: p, side: k)
             if v == 2: 
                 # Go find the empty block
                 for (i, j) in p:
@@ -156,7 +161,6 @@ while true:
             destroy renderer
             destroy window
             quit(0)
-            break
 
     renderer.setDrawColor(0,0,0,255)
     renderer.clear()
@@ -169,14 +173,17 @@ while true:
         renderer.setDrawBlendMode(BlendModeMod)
         let state = getBoardState()
         if state.state == bseVictory:
-            renderer.setDrawColor((0.uint8, 255.uint8, 0.uint8, 0.uint8))
+            if state.side == 'X':
+                renderer.setDrawColor((0.uint8, 255.uint8, 0.uint8, 0.uint8))
+            else:
+                renderer.setDrawColor((255.uint8, 0.uint8, 0.uint8, 0.uint8))
             let victory_path = state.path
             for (i, j) in victory_path:
                 var rect = ((j*width).cint+margin, (i*width).cint+margin, width-margin, width-margin)
                 renderer.fillRect(rect)
 
         elif state.state == bseInsignificant:
-            renderer.setDrawColor((255.uint8, 0.uint8, 0.uint8, 0.uint8))
+            renderer.setDrawColor((255.uint8, 255.uint8, 0.uint8, 0.uint8))
             for i in 0..2:
                 for j in 0..2:
                     var rect = ((j*width).cint+margin, (i*width).cint+margin, 
